@@ -8,7 +8,8 @@ import { DoctorCard } from "@/components/DoctorCard";
 import { AppointmentBooking } from "@/components/AppointmentBooking";
 import { PatientTracking } from "@/components/PatientTracking";
 import { DoctorDashboard } from "@/components/DoctorDashboard";
-import { Heart, Shield, Clock, Users, Star, Activity, CalendarCheck, Stethoscope } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Heart, Shield, Clock, Users, Star, Activity, CalendarCheck, Stethoscope, LogOut } from "lucide-react";
 import heroImage from "@/assets/hero-medical.jpg";
 import doctor1 from "@/assets/doctor-1.jpg";
 import doctor2 from "@/assets/doctor-2.jpg";
@@ -51,6 +52,7 @@ const mockDoctors = [
 ];
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("patient");
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [currentAppointment, setCurrentAppointment] = useState<any>(null);
@@ -121,12 +123,29 @@ const Index = () => {
               <h1 className="text-xl font-bold text-foreground">AppointLive</h1>
             </div>
             
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-muted">
-                <TabsTrigger value="patient">Patient Portal</TabsTrigger>
-                <TabsTrigger value="doctor">Doctor Dashboard</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex items-center gap-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="bg-muted">
+                  <TabsTrigger value="patient">Patient Portal</TabsTrigger>
+                  <TabsTrigger value="doctor">Doctor Dashboard</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Welcome, {user?.email}
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={signOut}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </header>

@@ -145,6 +145,8 @@ const Auth = () => {
 
           if (profileError) {
             console.error("Error creating patient profile:", profileError);
+            setError("Failed to create patient profile. Please try again.");
+            return;
           }
         } else {
           const { error: profileError } = await supabase
@@ -161,6 +163,8 @@ const Auth = () => {
 
           if (profileError) {
             console.error("Error creating doctor profile:", profileError);
+            setError("Failed to create doctor profile. Please try again.");
+            return;
           }
         }
 

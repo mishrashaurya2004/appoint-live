@@ -14,7 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          patient_id: string
+          slot_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          patient_id: string
+          slot_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          patient_id?: string
+          slot_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctors: {
+        Row: {
+          created_at: string
+          fees: number
+          id: string
+          location: string
+          name: string
+          schedule: Json | null
+          specialization: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fees: number
+          id?: string
+          location: string
+          name: string
+          schedule?: Json | null
+          specialization: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fees?: number
+          id?: string
+          location?: string
+          name?: string
+          schedule?: Json | null
+          specialization?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      realtime_tracking: {
+        Row: {
+          appointment_id: string
+          eta_minutes: number | null
+          id: string
+          last_updated: string
+          patient_location_lat: number | null
+          patient_location_lng: number | null
+        }
+        Insert: {
+          appointment_id: string
+          eta_minutes?: number | null
+          id?: string
+          last_updated?: string
+          patient_location_lat?: number | null
+          patient_location_lng?: number | null
+        }
+        Update: {
+          appointment_id?: string
+          eta_minutes?: number | null
+          id?: string
+          last_updated?: string
+          patient_location_lat?: number | null
+          patient_location_lng?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "realtime_tracking_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

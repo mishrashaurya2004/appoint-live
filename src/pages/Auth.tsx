@@ -25,6 +25,12 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [userRole, setUserRole] = useState<"patient" | "doctor">("patient");
+  
+  // Doctor-specific fields
+  const [specialization, setSpecialization] = useState("");
+  const [fees, setFees] = useState("");
+  const [location, setLocation] = useState("");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -88,6 +94,15 @@ const Auth = () => {
       return;
     }
 
+    // Validate doctor-specific fields
+    if (userRole === "doctor") {
+      if (!specialization || !fees || !location) {
+        setError("Please fill in all doctor-specific fields.");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       const redirectUrl = `${window.location.origin}/`;
       
@@ -99,6 +114,10 @@ const Auth = () => {
           data: {
             name: name,
             phone: phone,
+            role: userRole,
+            specialization: userRole === "doctor" ? specialization : undefined,
+            fees: userRole === "doctor" ? fees : undefined,
+            location: userRole === "doctor" ? location : undefined,
           }
         }
       });
@@ -113,6 +132,38 @@ const Auth = () => {
       }
 
       if (data.user) {
+        // Create profile based on role
+        if (userRole === "patient") {
+          const { error: profileError } = await supabase
+            .from("patient_profiles")
+            .insert({
+              id: data.user.id,
+              name,
+              phone,
+              email: signUpEmail,
+            });
+
+          if (profileError) {
+            console.error("Error creating patient profile:", profileError);
+          }
+        } else {
+          const { error: profileError } = await supabase
+            .from("doctor_profiles")
+            .insert({
+              id: data.user.id,
+              name,
+              phone,
+              email: signUpEmail,
+              specialization,
+              fees: parseFloat(fees),
+              location,
+            });
+
+          if (profileError) {
+            console.error("Error creating doctor profile:", profileError);
+          }
+        }
+
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",
@@ -197,6 +248,31 @@ const Auth = () => {
 
               <TabsContent value="signup" className="space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  {/* Role Selection */}
+                  <div className="space-y-2">
+                    <Label>I am a</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={userRole === "patient" ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setUserRole("patient")}
+                        disabled={isLoading}
+                      >
+                        Patient
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={userRole === "doctor" ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setUserRole("doctor")}
+                        disabled={isLoading}
+                      >
+                        Doctor
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
@@ -235,6 +311,50 @@ const Auth = () => {
                       disabled={isLoading}
                     />
                   </div>
+
+                  {/* Doctor-specific fields */}
+                  {userRole === "doctor" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-specialization">Specialization</Label>
+                        <Input
+                          id="signup-specialization"
+                          type="text"
+                          value={specialization}
+                          onChange={(e) => setSpecialization(e.target.value)}
+                          placeholder="e.g., Cardiologist, Dermatologist"
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-fees">Consultation Fees</Label>
+                        <Input
+                          id="signup-fees"
+                          type="number"
+                          value={fees}
+                          onChange={(e) => setFees(e.target.value)}
+                          placeholder="Enter consultation fees"
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-location">Location</Label>
+                        <Input
+                          id="signup-location"
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="Clinic/Hospital location"
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </>
+                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>

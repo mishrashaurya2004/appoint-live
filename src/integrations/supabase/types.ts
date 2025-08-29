@@ -59,6 +59,45 @@ export type Database = {
           },
         ]
       }
+      doctor_profiles: {
+        Row: {
+          created_at: string
+          email: string
+          fees: number
+          id: string
+          location: string
+          name: string
+          phone: string | null
+          schedule: Json | null
+          specialization: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          fees: number
+          id: string
+          location: string
+          name: string
+          phone?: string | null
+          schedule?: Json | null
+          specialization: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          fees?: number
+          id?: string
+          location?: string
+          name?: string
+          phone?: string | null
+          schedule?: Json | null
+          specialization?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       doctors: {
         Row: {
           created_at: string
@@ -88,6 +127,33 @@ export type Database = {
           name?: string
           schedule?: Json | null
           specialization?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patient_profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
           updated_at?: string
         }
         Relationships: []

@@ -132,12 +132,26 @@ const Auth = () => {
       }
 
       if (data.user) {
+        // First create user role entry
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: data.user.id,
+            role: userRole,
+          });
+
+        if (roleError) {
+          console.error("Error creating user role:", roleError);
+          setError("Failed to create user role. Please try again.");
+          return;
+        }
+
         // Create profile based on role
         if (userRole === "patient") {
           const { error: profileError } = await supabase
-            .from("patient_profiles")
+            .from("patients")
             .insert({
-              id: data.user.id,
+              user_id: data.user.id,
               name,
               phone,
               email: signUpEmail,
@@ -150,9 +164,9 @@ const Auth = () => {
           }
         } else {
           const { error: profileError } = await supabase
-            .from("doctor_profiles")
+            .from("doctors")
             .insert({
-              id: data.user.id,
+              user_id: data.user.id,
               name,
               phone,
               email: signUpEmail,

@@ -9,6 +9,7 @@ import { AppointmentBooking } from "@/components/AppointmentBooking";
 import { PatientTracking } from "@/components/PatientTracking";
 import { DoctorDashboard } from "@/components/DoctorDashboard";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Heart, Shield, Clock, Users, Star, Activity, CalendarCheck, Stethoscope, LogOut } from "lucide-react";
 import heroImage from "@/assets/hero-medical.jpg";
 import doctor1 from "@/assets/doctor-1.jpg";
@@ -53,7 +54,7 @@ const mockDoctors = [
 
 const Index = () => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState("patient");
+  const { role, loading: roleLoading } = useUserRole();
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [currentAppointment, setCurrentAppointment] = useState<any>(null);
   const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
@@ -110,6 +111,19 @@ const Index = () => {
     }
   };
 
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+            <Stethoscope className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -124,16 +138,9 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="bg-muted">
-                  <TabsTrigger value="patient">Patient Portal</TabsTrigger>
-                  <TabsTrigger value="doctor">Doctor Dashboard</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  Welcome, {user?.email}
+                  Welcome, {user?.email} ({role})
                 </span>
                 <Button 
                   variant="outline" 
@@ -150,8 +157,9 @@ const Index = () => {
         </div>
       </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsContent value="patient" className="mt-0">
+      {/* Role-based Content */}
+      {role === "patient" ? (
+        <>
           {/* Hero Section */}
           <section className="relative bg-gradient-hero text-white py-20">
             <div className="absolute inset-0 opacity-20">
@@ -292,19 +300,24 @@ const Index = () => {
               </div>
             </div>
           </section>
-        </TabsContent>
-
-        <TabsContent value="doctor" className="mt-0">
-          <div className="container mx-auto px-4 py-8">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-foreground mb-2">Doctor Dashboard</h1>
-              <p className="text-muted-foreground">Manage your appointments and track patient arrivals in real-time</p>
-            </div>
-            
-            <DoctorDashboard />
+        </>
+      ) : role === "doctor" ? (
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Doctor Dashboard</h1>
+            <p className="text-muted-foreground">Manage your appointments and track patient arrivals in real-time</p>
           </div>
-        </TabsContent>
-      </Tabs>
+          
+          <DoctorDashboard />
+        </div>
+      ) : (
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-4">Welcome to AppointLive</h1>
+            <p className="text-muted-foreground">Unable to determine user role. Please contact support.</p>
+          </div>
+        </div>
+      )}
 
       {/* Booking Modal */}
       {selectedDoctor && (

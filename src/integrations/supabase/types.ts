@@ -17,72 +17,84 @@ export type Database = {
       appointments: {
         Row: {
           created_at: string
-          doctor_id: number
-          id: number
-          patient_id: number
+          doctor_id: string
+          id: string
+          patient_id: string
           slot_time: string
           status: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          doctor_id: number
-          id?: number
-          patient_id: number
+          doctor_id: string
+          id?: string
+          patient_id: string
           slot_time: string
           status?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          doctor_id?: number
-          id?: number
-          patient_id?: number
+          doctor_id?: string
+          id?: string
+          patient_id?: string
           slot_time?: string
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       doctor_profiles: {
         Row: {
           created_at: string
           email: string
           fees: number
-          id: number
+          id: string
           location: string
           name: string
           phone: string | null
           schedule: Json | null
           specialization: string
           updated_at: string
-          user_id: string
         }
         Insert: {
           created_at?: string
           email: string
           fees: number
-          id?: number
+          id: string
           location: string
           name: string
           phone?: string | null
           schedule?: Json | null
           specialization: string
           updated_at?: string
-          user_id: string
         }
         Update: {
           created_at?: string
           email?: string
           fees?: number
-          id?: number
+          id?: string
           location?: string
           name?: string
           phone?: string | null
           schedule?: Json | null
           specialization?: string
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -90,7 +102,7 @@ export type Database = {
         Row: {
           created_at: string
           fees: number
-          id: number
+          id: string
           location: string
           name: string
           schedule: Json | null
@@ -100,7 +112,7 @@ export type Database = {
         Insert: {
           created_at?: string
           fees: number
-          id?: number
+          id?: string
           location: string
           name: string
           schedule?: Json | null
@@ -110,7 +122,7 @@ export type Database = {
         Update: {
           created_at?: string
           fees?: number
-          id?: number
+          id?: string
           location?: string
           name?: string
           schedule?: Json | null
@@ -123,29 +135,26 @@ export type Database = {
         Row: {
           created_at: string
           email: string
-          id: number
+          id: string
           name: string
           phone: string
           updated_at: string
-          user_id: string
         }
         Insert: {
           created_at?: string
           email: string
-          id?: number
+          id: string
           name: string
           phone: string
           updated_at?: string
-          user_id: string
         }
         Update: {
           created_at?: string
           email?: string
-          id?: number
+          id?: string
           name?: string
           phone?: string
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -153,7 +162,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
-          id: number
+          id: string
           name: string
           phone: string
           updated_at: string
@@ -161,7 +170,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
-          id?: number
+          id?: string
           name: string
           phone: string
           updated_at?: string
@@ -169,7 +178,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
-          id?: number
+          id?: string
           name?: string
           phone?: string
           updated_at?: string
@@ -178,30 +187,38 @@ export type Database = {
       }
       realtime_tracking: {
         Row: {
-          appointment_id: number
+          appointment_id: string
           eta_minutes: number | null
-          id: number
+          id: string
           last_updated: string
           patient_location_lat: number | null
           patient_location_lng: number | null
         }
         Insert: {
-          appointment_id: number
+          appointment_id: string
           eta_minutes?: number | null
-          id?: number
+          id?: string
           last_updated?: string
           patient_location_lat?: number | null
           patient_location_lng?: number | null
         }
         Update: {
-          appointment_id?: number
+          appointment_id?: string
           eta_minutes?: number | null
-          id?: number
+          id?: string
           last_updated?: string
           patient_location_lat?: number | null
           patient_location_lng?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "realtime_tracking_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

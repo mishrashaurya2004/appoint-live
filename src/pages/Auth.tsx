@@ -137,7 +137,7 @@ const Auth = () => {
           const { error: profileError } = await supabase
             .from("patient_profiles")
             .insert({
-              user_id: data.user.id,
+              id: data.user.id,
               name,
               phone,
               email: signUpEmail,
@@ -152,7 +152,7 @@ const Auth = () => {
           const { error: profileError } = await supabase
             .from("doctor_profiles")
             .insert({
-              user_id: data.user.id,
+              id: data.user.id,
               name,
               phone,
               email: signUpEmail,

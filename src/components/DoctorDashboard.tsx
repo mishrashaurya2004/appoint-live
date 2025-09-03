@@ -2,12 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, MapPin, Navigation, Phone, CheckCircle, AlertTriangle, Stethoscope, User } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-
-interface DoctorDashboardProps {
-  onSwitchToPatient: () => void;
-}
+import { Clock, Users, MapPin, Navigation, Phone, CheckCircle, AlertTriangle } from "lucide-react";
 
 interface PatientAppointment {
   id: string;
@@ -60,10 +55,9 @@ const mockAppointments: PatientAppointment[] = [
   },
 ];
 
-const DoctorDashboard = ({ onSwitchToPatient }: DoctorDashboardProps) => {
+export const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState<PatientAppointment[]>(mockAppointments);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { signOut } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -113,197 +107,171 @@ const DoctorDashboard = ({ onSwitchToPatient }: DoctorDashboardProps) => {
   const currentPatient = appointments.find(apt => apt.status === "in-progress");
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Stethoscope className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">Doctor Dashboard</h1>
+    <div className="space-y-6">
+      {/* Dashboard Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-primary text-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/80 text-sm">Total Today</p>
+                <p className="text-2xl font-bold">{totalPatients}</p>
+              </div>
+              <Users className="w-8 h-8 text-white/80" />
             </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={onSwitchToPatient}>
-                <User className="h-4 w-4 mr-2" />
-                Switch to Patient View
-              </Button>
-              <Button variant="destructive" onClick={signOut}>
-                Logout
-              </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-success text-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/80 text-sm">Arrived</p>
+                <p className="text-2xl font-bold">{patientsArrived}</p>
+              </div>
+              <MapPin className="w-8 h-8 text-white/80" />
             </div>
-          </div>
-        </div>
-      </header>
+          </CardContent>
+        </Card>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Dashboard Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-gradient-primary text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white/80 text-sm">Total Today</p>
-                    <p className="text-2xl font-bold">{totalPatients}</p>
-                  </div>
-                  <Users className="w-8 h-8 text-white/80" />
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="bg-medical-orange text-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/80 text-sm">On the way</p>
+                <p className="text-2xl font-bold">{patientsOnWay}</p>
+              </div>
+              <Navigation className="w-8 h-8 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="bg-gradient-success text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white/80 text-sm">Arrived</p>
-                    <p className="text-2xl font-bold">{patientsArrived}</p>
-                  </div>
-                  <MapPin className="w-8 h-8 text-white/80" />
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="bg-gradient-card border shadow-soft">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm">Current Time</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-medical-blue" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <Card className="bg-medical-orange text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white/80 text-sm">On the way</p>
-                    <p className="text-2xl font-bold">{patientsOnWay}</p>
-                  </div>
-                  <Navigation className="w-8 h-8 text-white/80" />
-                </div>
-              </CardContent>
-            </Card>
+      {/* Current Patient */}
+      {currentPatient && (
+        <Card className="bg-warning/10 border-warning/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-warning">
+              <Users className="w-5 h-5" />
+              Current Patient
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">{currentPatient.patientName}</h3>
+                <p className="text-sm text-muted-foreground">{currentPatient.symptoms}</p>
+                <p className="text-sm text-warning font-medium mt-1">
+                  {currentPatient.appointmentTime} - In Progress
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={() => updateAppointmentStatus(currentPatient.id, "completed")}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Complete
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Phone className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-            <Card className="bg-gradient-card border shadow-soft">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Current Time</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+      {/* Patient Queue */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-medical-blue" />
+            Patient Queue
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {appointments
+              .filter(apt => apt.status !== "completed")
+              .sort((a, b) => a.queuePosition - b.queuePosition)
+              .map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="flex items-center justify-between p-4 bg-gradient-card rounded-lg border hover:shadow-soft transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 bg-medical-blue text-white rounded-full flex items-center justify-center text-sm font-medium">
+                      {appointment.queuePosition}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="font-medium">{appointment.patientName}</h3>
+                        <Badge className={getStatusColor(appointment.status)}>
+                          {getStatusIcon(appointment.status)}
+                          <span className="ml-1 capitalize">
+                            {appointment.status.replace('-', ' ')}
+                          </span>
+                        </Badge>
+                        {appointment.eta && (
+                          <Badge variant="outline" className="text-medical-orange border-medical-orange">
+                            ETA: {appointment.eta}m
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{appointment.symptoms}</p>
+                      <p className="text-xs text-medical-blue font-medium">
+                        {appointment.appointmentTime}
+                      </p>
+                    </div>
                   </div>
-                  <Clock className="w-8 h-8 text-medical-blue" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Current Patient */}
-          {currentPatient && (
-            <Card className="bg-warning/10 border-warning/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-warning">
-                  <Users className="w-5 h-5" />
-                  Current Patient
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-lg">{currentPatient.patientName}</h3>
-                    <p className="text-sm text-muted-foreground">{currentPatient.symptoms}</p>
-                    <p className="text-sm text-warning font-medium mt-1">
-                      {currentPatient.appointmentTime} - In Progress
-                    </p>
-                  </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => updateAppointmentStatus(currentPatient.id, "completed")}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Complete
-                    </Button>
+                    {appointment.status === "arrived" && (
+                      <Button
+                        variant="medical"
+                        size="sm"
+                        onClick={() => updateAppointmentStatus(appointment.id, "in-progress")}
+                      >
+                        Start Consultation
+                      </Button>
+                    )}
+                    
+                    {appointment.status === "booked" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateAppointmentStatus(appointment.id, "no-show")}
+                      >
+                        Mark No-Show
+                      </Button>
+                    )}
+
                     <Button variant="outline" size="sm">
                       <Phone className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Patient Queue */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-medical-blue" />
-                Patient Queue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {appointments
-                  .filter(apt => apt.status !== "completed")
-                  .sort((a, b) => a.queuePosition - b.queuePosition)
-                  .map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className="flex items-center justify-between p-4 bg-gradient-card rounded-lg border hover:shadow-soft transition-all"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 bg-medical-blue text-white rounded-full flex items-center justify-center text-sm font-medium">
-                          {appointment.queuePosition}
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="font-medium">{appointment.patientName}</h3>
-                            <Badge className={getStatusColor(appointment.status)}>
-                              {getStatusIcon(appointment.status)}
-                              <span className="ml-1 capitalize">
-                                {appointment.status.replace('-', ' ')}
-                              </span>
-                            </Badge>
-                            {appointment.eta && (
-                              <Badge variant="outline" className="text-medical-orange border-medical-orange">
-                                ETA: {appointment.eta}m
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{appointment.symptoms}</p>
-                          <p className="text-xs text-medical-blue font-medium">
-                            {appointment.appointmentTime}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        {appointment.status === "arrived" && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => updateAppointmentStatus(appointment.id, "in-progress")}
-                          >
-                            Start Consultation
-                          </Button>
-                        )}
-                        
-                        {appointment.status === "booked" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateAppointmentStatus(appointment.id, "no-show")}
-                          >
-                            Mark No-Show
-                          </Button>
-                        )}
-
-                        <Button variant="outline" size="sm">
-                          <Phone className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
-
-export default DoctorDashboard;

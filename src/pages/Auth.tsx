@@ -9,10 +9,13 @@ import { AlertCircle, Stethoscope } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import RoleSelector from "@/components/RoleSelector";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showRoleSelector, setShowRoleSelector] = useState(false);
+  const [userRoles, setUserRoles] = useState<("patient" | "doctor")[]>([]);
   const navigate = useNavigate();
 
   // Sign In Form State
@@ -64,11 +67,22 @@ const Auth = () => {
       }
 
       if (data.user) {
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully signed in.",
-        });
-        navigate("/");
+        // Check if user has multiple roles
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+
+        if (roleData && roleData.length > 1) {
+          setUserRoles(roleData.map(r => r.role as "patient" | "doctor"));
+          setShowRoleSelector(true);
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "You have been successfully signed in.",
+          });
+          navigate("/");
+        }
       }
     } catch (error: any) {
       setError("An unexpected error occurred. Please try again.");
@@ -138,6 +152,7 @@ const Auth = () => {
           .insert({
             user_id: data.user.id,
             role: userRole,
+            is_primary: true, // First role is always primary
           });
 
         if (roleError) {
@@ -193,6 +208,42 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  const handleRoleSelection = (role: "patient" | "doctor") => {
+    // Save selected role to sessionStorage and navigate
+    const user = supabase.auth.getUser();
+    user.then(({ data }) => {
+      if (data.user) {
+        sessionStorage.setItem(`selectedRole_${data.user.id}`, role);
+      }
+    });
+    
+    setShowRoleSelector(false);
+    toast({
+      title: "Welcome back!",
+      description: `You are now signed in as a ${role}.`,
+    });
+    navigate("/");
+  };
+
+  if (showRoleSelector) {
+    return (
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <Stethoscope className="w-6 h-6 text-medical-blue" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">AppointLive</h1>
+          </div>
+          <RoleSelector 
+            onRoleSelected={handleRoleSelection} 
+            availableRoles={userRoles}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">

@@ -54,7 +54,7 @@ const mockDoctors = [
 
 const Index = () => {
   const { user, signOut } = useAuth();
-  const { role, loading: roleLoading, hasMultipleRoles, switchRole } = useUserRole();
+  const { role, loading: roleLoading } = useUserRole();
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [currentAppointment, setCurrentAppointment] = useState<any>(null);
   const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
@@ -137,33 +137,19 @@ const Index = () => {
               <h1 className="text-xl font-bold text-foreground">AppointLive</h1>
             </div>
             
-            <div className="flex items-center gap-4">
-              {hasMultipleRoles && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => switchRole(role === "patient" ? "doctor" : "patient")}
-                  >
-                    Switch to {role === "patient" ? "Doctor" : "Patient"}
-                  </Button>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Welcome, {user?.email} ({role})
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={signOut}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Welcome, {user?.email} ({role})
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={signOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>

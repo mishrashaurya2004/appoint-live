@@ -133,59 +133,9 @@ const Auth = () => {
       }
 
       if (data.user) {
-        // First create user role entry
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: data.user.id,
-            role: userRole,
-          });
-
-        if (roleError) {
-          console.error("Error creating user role:", roleError);
-          setError("Failed to create user role. Please try again.");
-          return;
-        }
-
-        // Create profile based on role
-        if (userRole === "patient") {
-          const { error: profileError } = await supabase
-            .from("patients")
-            .insert({
-              user_id: data.user.id,
-              name,
-              phone,
-              email: signUpEmail,
-            });
-
-          if (profileError) {
-            console.error("Error creating patient profile:", profileError);
-            setError("Failed to create patient profile. Please try again.");
-            return;
-          }
-        } else {
-          const { error: profileError } = await supabase
-            .from("doctors")
-            .insert({
-              user_id: data.user.id,
-              name,
-              phone,
-              email: signUpEmail,
-              specialization,
-              fees: parseFloat(fees),
-              location,
-            });
-
-          if (profileError) {
-            console.error("Error creating doctor profile:", profileError);
-            setError("Failed to create doctor profile. Please try again.");
-            return;
-          }
-        }
-
         toast({
           title: "Account created!",
-          description: "Please check your email to verify your account.",
+          description: "Please check your email to verify your account before signing in.",
         });
       }
     } catch (error: any) {

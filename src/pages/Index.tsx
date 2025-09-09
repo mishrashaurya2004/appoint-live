@@ -55,7 +55,7 @@ const mockDoctors = [
 
 const Index = () => {
   const { user, signOut } = useAuth();
-  const { role, loading: roleLoading } = useUserRole();
+  const { role, loading: roleLoading, needsRoleSelection, setUserRole } = useUserRole();
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [currentAppointment, setCurrentAppointment] = useState<any>(null);
   const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
@@ -168,11 +168,53 @@ const Index = () => {
           
           <DoctorDashboard />
         </div>
+      ) : needsRoleSelection ? (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="max-w-md mx-auto">
+            <div className="text-center mb-8">
+              <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Stethoscope className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to AppointLive</h1>
+              <p className="text-muted-foreground">Please select your role to continue</p>
+            </div>
+            
+            <div className="grid gap-4">
+              <Button
+                onClick={() => setUserRole("patient")}
+                className="h-16 text-left justify-start gap-4"
+                variant="outline"
+              >
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <div className="font-semibold">I'm a Patient</div>
+                  <div className="text-sm text-muted-foreground">Book appointments and track health</div>
+                </div>
+              </Button>
+              
+              <Button
+                onClick={() => setUserRole("doctor")}
+                className="h-16 text-left justify-start gap-4"
+                variant="outline"
+              >
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                  <Stethoscope className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <div className="font-semibold">I'm a Doctor</div>
+                  <div className="text-sm text-muted-foreground">Manage appointments and patients</div>
+                </div>
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">Welcome to AppointLive</h1>
-            <p className="text-muted-foreground">Unable to determine user role. Please contact support.</p>
+            <p className="text-muted-foreground">Loading your dashboard...</p>
           </div>
         </div>
       )}

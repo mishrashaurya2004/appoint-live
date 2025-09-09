@@ -6,6 +6,7 @@ export const useUserRole = () => {
   const { user } = useAuth();
   const [role, setRole] = useState<"patient" | "doctor" | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -22,11 +23,16 @@ export const useUserRole = () => {
           .eq("user_id", user.id)
           .single();
 
-        if (error) {
+        if (error && error.code === "PGRST116") {
+          // No role found for user - they need to select one
+          setNeedsRoleSelection(true);
+          setRole(null);
+        } else if (error) {
           console.error("Error fetching user role:", error);
           setRole(null);
         } else {
           setRole(data.role as "patient" | "doctor");
+          setNeedsRoleSelection(false);
         }
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -39,8 +45,33 @@ export const useUserRole = () => {
     fetchUserRole();
   }, [user]);
 
+  const setUserRole = async (selectedRole: "patient" | "doctor") => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: user.id,
+          role: selectedRole
+        });
+
+      if (error) {
+        console.error("Error setting user role:", error);
+        return;
+      }
+
+      setRole(selectedRole);
+      setNeedsRoleSelection(false);
+    } catch (error) {
+      console.error("Error setting user role:", error);
+    }
+  };
+
   return { 
     role, 
-    loading
+    loading,
+    needsRoleSelection,
+    setUserRole
   };
 };

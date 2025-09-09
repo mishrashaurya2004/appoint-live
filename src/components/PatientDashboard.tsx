@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchFilters } from "@/components/SearchFilters";
 import { DoctorCard } from "@/components/DoctorCard";
 import { AppointmentBooking } from "@/components/AppointmentBooking";
+import { Input } from "@/components/ui/input";
 import { 
   Calendar, 
   Clock, 
@@ -19,7 +20,10 @@ import {
   History,
   Star,
   Search,
-  Filter
+  Filter,
+  UserCheck,
+  UserX,
+  SortAsc
 } from "lucide-react";
 import doctor1 from "@/assets/doctor-1.jpg";
 import doctor2 from "@/assets/doctor-2.jpg";

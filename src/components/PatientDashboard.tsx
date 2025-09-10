@@ -7,6 +7,8 @@ import { SearchFilters } from "@/components/SearchFilters";
 import { DoctorCard } from "@/components/DoctorCard";
 import { AppointmentBooking } from "@/components/AppointmentBooking";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Calendar, 
   Clock, 
@@ -142,24 +144,83 @@ const recentAppointments = [
 
 export const PatientDashboard = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
-  const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [filteredDoctors, setFilteredDoctors] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialization, setSelectedSpecialization] = useState("All Specialists");
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('doctors')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      // Transform database data to match component interface
+      const transformedDoctors = data?.map((doctor, index) => ({
+        id: doctor.id.toString(),
+        name: doctor.name,
+        specialization: doctor.specialization,
+        fees: doctor.fees,
+        rating: 4.5 + (Math.random() * 0.5), // Random rating between 4.5-5.0
+        location: doctor.location,
+        image: [doctor1, doctor2, doctor3][index % 3], // Cycle through available images
+        availableSlots: ["10:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"], // Default slots
+        experience: 5 + Math.floor(Math.random() * 15), // Random experience 5-20 years
+      })) || [];
+
+      setDoctors(transformedDoctors);
+      setFilteredDoctors(transformedDoctors);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load doctors",
+        variant: "destructive",
+      });
+      // Fallback to mock data
+      setDoctors(mockDoctors);
+      setFilteredDoctors(mockDoctors);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSpecializationFilter = (specialization: string) => {
     setSelectedSpecialization(specialization);
-    if (specialization === "All Specialists") {
-      setFilteredDoctors(mockDoctors);
-    } else {
-      setFilteredDoctors(mockDoctors.filter(doc => doc.specialization === specialization));
+    let filtered = doctors;
+    
+    if (specialization !== "All Specialists") {
+      filtered = doctors.filter(doc => doc.specialization === specialization);
     }
+    
+    // Apply search filter if there's a query
+    if (searchQuery) {
+      filtered = filtered.filter(doc =>
+        doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.specialization.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.location.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    setFilteredDoctors(filtered);
   };
 
   const handleLocationFilter = (location: string) => {
     if (location === "Near Me") {
-      setFilteredDoctors(mockDoctors);
+      setFilteredDoctors(doctors);
     } else {
-      setFilteredDoctors(mockDoctors.filter(doc => 
+      setFilteredDoctors(doctors.filter(doc => 
         doc.location.toLowerCase().includes(location.toLowerCase())
       ));
     }
@@ -167,21 +228,26 @@ export const PatientDashboard = () => {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    if (!query) {
-      setFilteredDoctors(mockDoctors);
-      return;
-    }
-    setFilteredDoctors(
-      mockDoctors.filter(doc =>
+    let filtered = doctors;
+    
+    if (query) {
+      filtered = doctors.filter(doc =>
         doc.name.toLowerCase().includes(query.toLowerCase()) ||
         doc.specialization.toLowerCase().includes(query.toLowerCase()) ||
         doc.location.toLowerCase().includes(query.toLowerCase())
-      )
-    );
+      );
+    }
+    
+    // Apply specialization filter if selected
+    if (selectedSpecialization !== "All Specialists") {
+      filtered = filtered.filter(doc => doc.specialization === selectedSpecialization);
+    }
+    
+    setFilteredDoctors(filtered);
   };
 
   const handleBookAppointment = (doctorId: string) => {
-    const doctor = mockDoctors.find(d => d.id === doctorId);
+    const doctor = doctors.find(d => d.id === doctorId);
     setSelectedDoctor(doctor);
   };
 

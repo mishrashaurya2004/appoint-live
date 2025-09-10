@@ -3,9 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, MapPin, Navigation, Phone, CheckCircle, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface PatientAppointment {
-  id: string;
+  id: number;
   patientName: string;
   appointmentTime: string;
   status: "booked" | "on-way" | "arrived" | "in-progress" | "completed" | "no-show";
@@ -13,51 +16,16 @@ interface PatientAppointment {
   symptoms: string;
   phone: string;
   queuePosition: number;
+  slotTime: string;
 }
 
-const mockAppointments: PatientAppointment[] = [
-  {
-    id: "1",
-    patientName: "Sarah Johnson",
-    appointmentTime: "10:00 AM",
-    status: "in-progress",
-    symptoms: "Regular checkup and blood pressure monitoring",
-    phone: "+1 234-567-8901",
-    queuePosition: 1,
-  },
-  {
-    id: "2",
-    patientName: "Michael Chen",
-    appointmentTime: "10:30 AM",
-    status: "on-way",
-    eta: 15,
-    symptoms: "Chest pain and shortness of breath",
-    phone: "+1 234-567-8902",
-    queuePosition: 2,
-  },
-  {
-    id: "3",
-    patientName: "Emily Davis",
-    appointmentTime: "11:00 AM",
-    status: "arrived",
-    symptoms: "Follow-up for diabetes management",
-    phone: "+1 234-567-8903",
-    queuePosition: 3,
-  },
-  {
-    id: "4",
-    patientName: "James Wilson",
-    appointmentTime: "11:30 AM",
-    status: "booked",
-    symptoms: "Annual physical examination",
-    phone: "+1 234-567-8904",
-    queuePosition: 4,
-  },
-];
 
 export const DoctorDashboard = () => {
-  const [appointments, setAppointments] = useState<PatientAppointment[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -67,14 +35,107 @@ export const DoctorDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const updateAppointmentStatus = (appointmentId: string, newStatus: string) => {
-    setAppointments(prev =>
-      prev.map(apt =>
-        apt.id === appointmentId
-          ? { ...apt, status: newStatus as PatientAppointment["status"] }
-          : apt
-      )
-    );
+  useEffect(() => {
+    if (user) {
+      fetchAppointments();
+    }
+  }, [user]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+
+      // Get doctor ID from doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (doctorError) {
+        console.error('Doctor not found:', doctorError);
+        return;
+      }
+
+      // Fetch appointments for today with patient details
+      const today = new Date().toISOString().split('T')[0];
+      const { data: appointmentsData, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          slot_time,
+          status,
+          patients!inner(name, phone)
+        `)
+        .eq('doctor_id', doctorData.id)
+        .gte('slot_time', `${today}T00:00:00`)
+        .lt('slot_time', `${today}T23:59:59`)
+        .order('slot_time', { ascending: true });
+
+      if (appointmentsError) {
+        throw appointmentsError;
+      }
+
+      // Transform data to match component interface
+      const transformedAppointments: PatientAppointment[] = appointmentsData?.map((apt, index) => ({
+        id: apt.id,
+        patientName: apt.patients.name,
+        phone: apt.patients.phone,
+        appointmentTime: new Date(apt.slot_time).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        slotTime: apt.slot_time,
+        status: apt.status as PatientAppointment['status'],
+        symptoms: "General consultation", // Default since we don't store symptoms yet
+        queuePosition: index + 1,
+      })) || [];
+
+      setAppointments(transformedAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load appointments",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setAppointments(prev =>
+        prev.map(apt =>
+          apt.id === appointmentId
+            ? { ...apt, status: newStatus as PatientAppointment["status"] }
+            : apt
+        )
+      );
+
+      toast({
+        title: "Status Updated",
+        description: `Appointment status changed to ${newStatus.replace('-', ' ')}`,
+      });
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update appointment status",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -105,6 +166,17 @@ export const DoctorDashboard = () => {
   const patientsOnWay = appointments.filter(apt => apt.status === "on-way").length;
   const patientsArrived = appointments.filter(apt => apt.status === "arrived").length;
   const currentPatient = appointments.find(apt => apt.status === "in-progress");
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Clock, User, FileText, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Doctor {
   id: string;
@@ -45,6 +47,7 @@ export const AppointmentBooking = ({ doctor, onClose, onBookingComplete }: Appoi
   const [symptoms, setSymptoms] = useState("");
   const [isBooking, setIsBooking] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleBookAppointment = async () => {
     if (!selectedDate || !selectedTime || !patientName || !patientPhone) {
@@ -58,18 +61,77 @@ export const AppointmentBooking = ({ doctor, onClose, onBookingComplete }: Appoi
 
     setIsBooking(true);
     
-    // Simulate booking API call
-    setTimeout(() => {
-      const appointmentId = `apt_${Date.now()}`;
+    try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Get patient ID from patients table
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (patientError) {
+        throw new Error("Patient profile not found");
+      }
+
+      // Get doctor ID from doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('name', doctor.name)
+        .single();
+
+      if (doctorError) {
+        throw new Error("Doctor not found");
+      }
+
+      // Convert date and time to timestamp
+      const appointmentDateTime = new Date(`${selectedDate} ${selectedTime}`);
       
+      // Create appointment
+      const { data: appointmentData, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          patient_id: patientData.id,
+          doctor_id: doctorData.id,
+          slot_time: appointmentDateTime.toISOString(),
+          status: 'booked'
+        })
+        .select()
+        .single();
+
+      if (appointmentError) {
+        throw new Error("Failed to book appointment");
+      }
+
+      // Update patient info if different
+      await supabase
+        .from('patients')
+        .update({ 
+          name: patientName, 
+          phone: patientPhone 
+        })
+        .eq('id', patientData.id);
+
       toast({
         title: "Appointment Booked Successfully!",
         description: `Your appointment with Dr. ${doctor.name} is confirmed for ${selectedDate} at ${selectedTime}`,
       });
       
-      onBookingComplete(appointmentId);
+      onBookingComplete(appointmentData.id.toString());
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast({
+        title: "Booking Failed",
+        description: error instanceof Error ? error.message : "Failed to book appointment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsBooking(false);
-    }, 2000);
+    }
   };
 
   return (

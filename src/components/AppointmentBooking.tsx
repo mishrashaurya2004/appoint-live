@@ -66,15 +66,35 @@ export const AppointmentBooking = ({ doctor, onClose, onBookingComplete }: Appoi
         throw new Error("User not authenticated");
       }
 
-      // Get patient ID from patients table
-      const { data: patientData, error: patientError } = await supabase
+      // Get patient ID from patients table, create if doesn't exist
+      let { data: patientData, error: patientError } = await supabase
         .from('patients')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (patientError) {
-        throw new Error("Patient profile not found");
+        throw new Error("Error fetching patient profile");
+      }
+
+      // If no patient record exists, create one
+      if (!patientData) {
+        const { data: newPatientData, error: createPatientError } = await supabase
+          .from('patients')
+          .insert({
+            user_id: user.id,
+            name: patientName || user.email?.split('@')[0] || 'Patient',
+            email: user.email || '',
+            phone: patientPhone || ''
+          })
+          .select('id')
+          .single();
+
+        if (createPatientError) {
+          throw new Error("Failed to create patient profile");
+        }
+        
+        patientData = newPatientData;
       }
 
       // Get doctor ID from doctors table

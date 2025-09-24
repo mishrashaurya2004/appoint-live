@@ -195,7 +195,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      doctor_can_view_patient: {
+        Args: { _patient_id: number }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

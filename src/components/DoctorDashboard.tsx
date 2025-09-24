@@ -57,8 +57,8 @@ export const DoctorDashboard = () => {
         return;
       }
 
-      // Fetch appointments for today with patient details
-      const today = new Date().toISOString().split('T')[0];
+      // Fetch all upcoming appointments with patient details
+      const now = new Date().toISOString();
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
@@ -68,8 +68,7 @@ export const DoctorDashboard = () => {
           patients!inner(name, phone)
         `)
         .eq('doctor_id', doctorData.id)
-        .gte('slot_time', `${today}T00:00:00`)
-        .lt('slot_time', `${today}T23:59:59`)
+        .gte('slot_time', now)
         .order('slot_time', { ascending: true });
 
       if (appointmentsError) {

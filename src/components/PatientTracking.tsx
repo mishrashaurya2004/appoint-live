@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Clock, Navigation, Phone, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Appointment {
   id: string;
@@ -27,29 +28,55 @@ export const PatientTracking = ({ appointment, onStatusUpdate }: PatientTracking
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const { toast } = useToast();
 
-  const getCurrentLocation = () => {
+  const getCurrentLocation = async () => {
     setIsGettingLocation(true);
     
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
           setCurrentLocation(location);
           
-          // Simulate ETA calculation (in real app, use Google Maps Distance Matrix API)
-          const simulatedETA = Math.floor(Math.random() * 30) + 10; // 10-40 minutes
-          setEta(simulatedETA);
-          
-          onStatusUpdate(appointment.id, "on-way");
-          setIsGettingLocation(false);
-          
-          toast({
-            title: "Location Shared",
-            description: `Doctor notified - ETA: ${simulatedETA} minutes`,
-          });
+          try {
+            // Call Supabase edge function to calculate real ETA
+            const { data, error } = await supabase.functions.invoke('calculate-eta', {
+              body: {
+                appointmentId: parseInt(appointment.id),
+                patientLat: location.lat,
+                patientLng: location.lng,
+                doctorAddress: "Medical Center, Downtown" // This should come from doctor's profile
+              }
+            });
+
+            if (error) throw error;
+
+            const calculatedETA = data.etaMinutes;
+            setEta(calculatedETA);
+            
+            onStatusUpdate(appointment.id, "on-way");
+            setIsGettingLocation(false);
+            
+            toast({
+              title: "Location Shared",
+              description: `Doctor notified - ETA: ${calculatedETA} minutes`,
+            });
+          } catch (error) {
+            console.error('Error calculating ETA:', error);
+            // Fallback to simulated ETA
+            const simulatedETA = Math.floor(Math.random() * 30) + 10;
+            setEta(simulatedETA);
+            onStatusUpdate(appointment.id, "on-way");
+            
+            toast({
+              title: "Location Shared",
+              description: `Doctor notified - ETA: ${simulatedETA} minutes (estimated)`,
+            });
+          } finally {
+            setIsGettingLocation(false);
+          }
         },
         (error) => {
           console.error("Error getting location:", error);

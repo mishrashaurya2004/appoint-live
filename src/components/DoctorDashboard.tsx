@@ -11,7 +11,7 @@ interface PatientAppointment {
   id: number;
   patientName: string;
   appointmentTime: string;
-  status: "booked" | "on-way" | "arrived" | "in-progress" | "completed" | "no-show";
+  status: "booked" | "on-way" | "arrived" | "in-progress" | "completed" | "no-show" | "late" | "cancelled";
   eta?: number;
   symptoms: string;
   phone: string;
@@ -38,6 +38,39 @@ export const DoctorDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchAppointments();
+      
+      // Set up realtime subscription for appointment updates
+      const channel = supabase
+        .channel('doctor-appointments')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'appointments'
+          },
+          () => {
+            // Refetch appointments when any appointment changes
+            fetchAppointments();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'realtime_tracking'
+          },
+          () => {
+            // Refetch appointments when tracking data changes
+            fetchAppointments();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -57,7 +90,7 @@ export const DoctorDashboard = () => {
         return;
       }
 
-      // Fetch appointments from start of today onward with patient details (left join)
+      // Fetch appointments from start of today onward with patient details and tracking data
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
       const { data: appointmentsData, error: appointmentsError } = await supabase
@@ -66,7 +99,10 @@ export const DoctorDashboard = () => {
           id,
           slot_time,
           status,
-          patients(name, phone)
+          symptoms,
+          reason,
+          patients(name, phone),
+          realtime_tracking(eta_minutes, patient_location_lat, patient_location_lng)
         `)
         .eq('doctor_id', doctorData.id)
         .gte('slot_time', startOfToday.toISOString())
@@ -87,7 +123,8 @@ export const DoctorDashboard = () => {
         }),
         slotTime: apt.slot_time,
         status: apt.status as PatientAppointment['status'],
-        symptoms: "General consultation", // Default since we don't store symptoms yet
+        symptoms: apt.symptoms || "General consultation",
+        eta: apt.realtime_tracking?.[0]?.eta_minutes,
         queuePosition: index + 1,
       })) || [];
 
@@ -146,6 +183,8 @@ export const DoctorDashboard = () => {
       case "in-progress": return "bg-warning text-white";
       case "completed": return "bg-success text-white";
       case "no-show": return "bg-destructive text-white";
+      case "late": return "bg-yellow-500 text-white";
+      case "cancelled": return "bg-gray-500 text-white";
       default: return "bg-muted";
     }
   };
@@ -158,6 +197,8 @@ export const DoctorDashboard = () => {
       case "in-progress": return <Users className="w-4 h-4" />;
       case "completed": return <CheckCircle className="w-4 h-4" />;
       case "no-show": return <AlertTriangle className="w-4 h-4" />;
+      case "late": return <Clock className="w-4 h-4" />;
+      case "cancelled": return <AlertTriangle className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
   };
@@ -314,7 +355,7 @@ export const DoctorDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                   <div className="flex gap-2">
                     {appointment.status === "arrived" && (
                       <Button
                         variant="medical"
@@ -326,12 +367,31 @@ export const DoctorDashboard = () => {
                     )}
                     
                     {appointment.status === "booked" && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateAppointmentStatus(appointment.id, "no-show")}
+                        >
+                          No-Show
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateAppointmentStatus(appointment.id, "late")}
+                        >
+                          Mark Late
+                        </Button>
+                      </>
+                    )}
+
+                    {appointment.status === "on-way" && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => updateAppointmentStatus(appointment.id, "no-show")}
+                        onClick={() => updateAppointmentStatus(appointment.id, "late")}
                       >
-                        Mark No-Show
+                        Mark Late
                       </Button>
                     )}
 

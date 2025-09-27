@@ -20,8 +20,10 @@ export type Database = {
           doctor_id: number
           id: number
           patient_id: number
+          reason: string | null
           slot_time: string
           status: string
+          symptoms: string | null
           updated_at: string
         }
         Insert: {
@@ -29,8 +31,10 @@ export type Database = {
           doctor_id: number
           id?: number
           patient_id: number
+          reason?: string | null
           slot_time: string
           status?: string
+          symptoms?: string | null
           updated_at?: string
         }
         Update: {
@@ -38,8 +42,10 @@ export type Database = {
           doctor_id?: number
           id?: number
           patient_id?: number
+          reason?: string | null
           slot_time?: string
           status?: string
+          symptoms?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -99,8 +99,6 @@ export const DoctorDashboard = () => {
           id,
           slot_time,
           status,
-          symptoms,
-          reason,
           patients(name, phone),
           realtime_tracking(eta_minutes, patient_location_lat, patient_location_lng)
         `)
@@ -123,7 +121,7 @@ export const DoctorDashboard = () => {
         }),
         slotTime: apt.slot_time,
         status: apt.status as PatientAppointment['status'],
-        symptoms: apt.symptoms || "General consultation",
+        symptoms: "General consultation",
         eta: apt.realtime_tracking?.[0]?.eta_minutes,
         queuePosition: index + 1,
       })) || [];

@@ -134,6 +134,16 @@ export const AppointmentBooking = ({ doctor, onClose, onBookingComplete }: Appoi
         .single();
 
       if (appointmentError) {
+        // Check if it's a unique constraint violation (double booking)
+        if (appointmentError.code === '23505' || appointmentError.message?.includes('unique_doctor_slot')) {
+          toast({
+            title: "Time Slot Already Booked",
+            description: `Sorry, ${doctor.name} is not available at ${selectedTime} on ${selectedDate}. Please select a different time slot.`,
+            variant: "destructive",
+          });
+          setIsBooking(false);
+          return;
+        }
         throw new Error("Failed to book appointment");
       }
 

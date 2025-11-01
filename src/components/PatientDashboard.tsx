@@ -149,10 +149,12 @@ export const PatientDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialization, setSelectedSpecialization] = useState("All Specialists");
   const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchDoctors();
+    fetchAppointments();
   }, []);
 
   const fetchDoctors = async () => {
@@ -193,6 +195,44 @@ export const PatientDashboard = () => {
       setFilteredDoctors(mockDoctors);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get patient ID
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!patientData) return;
+
+      // Fetch all appointments with doctor details
+      const { data: appointmentsData, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          slot_time,
+          status,
+          symptoms,
+          reason,
+          doctors(name, specialization, location)
+        `)
+        .eq('patient_id', patientData.id)
+        .order('slot_time', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setAppointments(appointmentsData || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
     }
   };
 
@@ -253,6 +293,7 @@ export const PatientDashboard = () => {
 
   const handleBookingComplete = () => {
     setSelectedDoctor(null);
+    fetchAppointments(); // Refresh appointments after booking
   };
 
   return (
@@ -425,64 +466,100 @@ export const PatientDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {upcomingAppointments.map((appointment) => (
-                    <div key={appointment.id} className="border-l-4 border-medical-blue pl-4 py-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">{appointment.doctorName}</h4>
-                          <p className="text-sm text-muted-foreground">{appointment.specialization}</p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">{appointment.date}</span>
+                  {appointments
+                    .filter(apt => new Date(apt.slot_time) >= new Date() && apt.status !== 'completed' && apt.status !== 'cancelled')
+                    .length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No upcoming appointments</p>
+                    </div>
+                  ) : (
+                    appointments
+                      .filter(apt => new Date(apt.slot_time) >= new Date() && apt.status !== 'completed' && apt.status !== 'cancelled')
+                      .map((appointment) => (
+                        <div key={appointment.id} className="border-l-4 border-medical-blue pl-4 py-2 bg-background/50 rounded-r-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold">{appointment.doctors.name}</h4>
+                              <p className="text-sm text-muted-foreground">{appointment.doctors.specialization}</p>
+                              <div className="flex items-center gap-4 mt-2">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {new Date(appointment.slot_time).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {new Date(appointment.slot_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+                              {appointment.symptoms && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Symptoms: {appointment.symptoms}
+                                </p>
+                              )}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">{appointment.time}</span>
-                            </div>
+                            <Badge variant={appointment.status === "booked" ? "default" : "outline"} className="capitalize">
+                              {appointment.status.replace('-', ' ')}
+                            </Badge>
                           </div>
                         </div>
-                        <Badge variant={appointment.status === "confirmed" ? "default" : "outline"}>
-                          {appointment.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Recent Appointments */}
+              {/* Past Appointments */}
               <Card className="bg-gradient-card border-0 shadow-medium">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <History className="w-5 h-5 text-medical-green" />
-                    Recent Appointments
+                    Past Appointments
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {recentAppointments.map((appointment) => (
-                    <div key={appointment.id} className="border-l-4 border-medical-green pl-4 py-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">{appointment.doctorName}</h4>
-                          <p className="text-sm text-muted-foreground">{appointment.specialization}</p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">{appointment.date}</span>
+                  {appointments
+                    .filter(apt => new Date(apt.slot_time) < new Date() || apt.status === 'completed' || apt.status === 'cancelled')
+                    .length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No past appointments</p>
+                    </div>
+                  ) : (
+                    appointments
+                      .filter(apt => new Date(apt.slot_time) < new Date() || apt.status === 'completed' || apt.status === 'cancelled')
+                      .slice(0, 5)
+                      .map((appointment) => (
+                        <div key={appointment.id} className="border-l-4 border-medical-green pl-4 py-2 bg-background/50 rounded-r-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold">{appointment.doctors.name}</h4>
+                              <p className="text-sm text-muted-foreground">{appointment.doctors.specialization}</p>
+                              <div className="flex items-center gap-4 mt-2">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {new Date(appointment.slot_time).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {new Date(appointment.slot_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-warning fill-warning" />
-                              <span className="text-sm">{appointment.rating}</span>
-                            </div>
+                            <Badge variant="outline" className="capitalize">
+                              {appointment.status.replace('-', ' ')}
+                            </Badge>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-medical-green border-medical-green">
-                          {appointment.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                  )}
                 </CardContent>
               </Card>
             </div>

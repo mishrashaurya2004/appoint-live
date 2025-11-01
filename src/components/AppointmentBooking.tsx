@@ -59,6 +59,15 @@ export const AppointmentBooking = ({ doctor, onClose, onBookingComplete }: Appoi
       return;
     }
 
+    if (!symptoms.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please describe your symptoms",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsBooking(true);
     
     try {
@@ -118,7 +127,8 @@ export const AppointmentBooking = ({ doctor, onClose, onBookingComplete }: Appoi
           patient_id: patientData.id,
           doctor_id: doctorData.id,
           slot_time: appointmentDateTime.toISOString(),
-          status: 'booked'
+          status: 'booked',
+          symptoms: symptoms.trim()
         })
         .select()
         .single();

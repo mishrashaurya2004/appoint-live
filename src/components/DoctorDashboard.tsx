@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Clock, Users, MapPin, Navigation, Phone, CheckCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +18,7 @@ interface PatientAppointment {
   phone: string;
   queuePosition: number;
   slotTime: string;
+  reason?: string;
 }
 
 
@@ -24,6 +26,7 @@ export const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState<PatientAppointment | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -99,6 +102,8 @@ export const DoctorDashboard = () => {
           id,
           slot_time,
           status,
+          symptoms,
+          reason,
           patients(name, phone),
           realtime_tracking(eta_minutes, patient_location_lat, patient_location_lng)
         `)
@@ -121,7 +126,8 @@ export const DoctorDashboard = () => {
         }),
         slotTime: apt.slot_time,
         status: apt.status as PatientAppointment['status'],
-        symptoms: "General consultation",
+        symptoms: apt.symptoms || "General consultation",
+        reason: apt.reason,
         eta: apt.realtime_tracking?.[0]?.eta_minutes,
         queuePosition: index + 1,
       })) || [];
@@ -324,7 +330,8 @@ export const DoctorDashboard = () => {
               .map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex items-center justify-between p-4 bg-gradient-card rounded-lg border hover:shadow-soft transition-all"
+                  className="flex items-center justify-between p-4 bg-gradient-card rounded-lg border hover:shadow-soft transition-all cursor-pointer"
+                  onClick={() => setSelectedPatient(appointment)}
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 bg-medical-blue text-white rounded-full flex items-center justify-center text-sm font-medium">
@@ -402,6 +409,122 @@ export const DoctorDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Patient Details Modal */}
+      <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && setSelectedPatient(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Patient Details</DialogTitle>
+          </DialogHeader>
+          {selectedPatient && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{selectedPatient.patientName}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={getStatusColor(selectedPatient.status)}>
+                    {getStatusIcon(selectedPatient.status)}
+                    <span className="ml-1 capitalize">
+                      {selectedPatient.status.replace('-', ' ')}
+                    </span>
+                  </Badge>
+                  {selectedPatient.eta && (
+                    <Badge variant="outline" className="text-medical-orange border-medical-orange">
+                      ETA: {selectedPatient.eta}m
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                  <p className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-medical-blue" />
+                    {selectedPatient.phone}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Appointment Time</p>
+                  <p className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-medical-blue" />
+                    {selectedPatient.appointmentTime}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Symptoms</p>
+                  <p>{selectedPatient.symptoms}</p>
+                </div>
+
+                {selectedPatient.reason && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Reason for Visit</p>
+                    <p>{selectedPatient.reason}</p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Queue Position</p>
+                  <p>#{selectedPatient.queuePosition}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                {selectedPatient.status === "arrived" && (
+                  <Button
+                    variant="medical"
+                    className="flex-1"
+                    onClick={() => {
+                      updateAppointmentStatus(selectedPatient.id, "in-progress");
+                      setSelectedPatient(null);
+                    }}
+                  >
+                    Start Consultation
+                  </Button>
+                )}
+                
+                {selectedPatient.status === "booked" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        updateAppointmentStatus(selectedPatient.id, "no-show");
+                        setSelectedPatient(null);
+                      }}
+                    >
+                      No-Show
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        updateAppointmentStatus(selectedPatient.id, "late");
+                        setSelectedPatient(null);
+                      }}
+                    >
+                      Mark Late
+                    </Button>
+                  </>
+                )}
+
+                {selectedPatient.status === "in-progress" && (
+                  <Button
+                    variant="success"
+                    className="flex-1"
+                    onClick={() => {
+                      updateAppointmentStatus(selectedPatient.id, "completed");
+                      setSelectedPatient(null);
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Complete
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

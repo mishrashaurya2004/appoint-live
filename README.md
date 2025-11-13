@@ -1,7 +1,5 @@
 ## Project info
 
-**URL**: https://lovable.dev/projects/e8f50405-3a45-40cc-b40e-1acb8975ec06
-
 ## How can I edit this code?
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
